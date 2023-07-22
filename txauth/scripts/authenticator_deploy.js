@@ -16,6 +16,7 @@ async function main() {
   console.log("webauth", auth.webauthn.address);
   // console.log(auth.pubKey);
   console.log("pub key contract", auth.pubKeyContract.address);
+  console.log("txauth contract", auth.txauthenticator.address);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
@@ -26,8 +27,16 @@ main().catch((error) => {
 });
 
 async function deploy() {
+  let publicKey = process.env.PUBLIC_KEY;
+  let owner = process.env.OWNER;
+  let amount = process.env.AMOUNT;
+
+  if (!publicKey || !owner || !amount) {
+    throw new Error("no owner or public key or amount!");
+  }
   const pubKeyStr = Buffer.from(
-    "d8746a124200b059510062d57f750c39fb7a9ac4cfa6f4080092513efb653d164ddfad14d96d82879941959f4286e76a0e0ce93dbcf0ff54ac40c68018789862",
+    // "d8746a124200b059510062d57f750c39fb7a9ac4cfa6f4080092513efb653d164ddfad14d96d82879941959f4286e76a0e0ce93dbcf0ff54ac40c68018789862",
+    publicKey,
     "hex"
   );
 
@@ -53,5 +62,18 @@ async function deploy() {
   });
   const webauthn = await Webauthn.deploy();
 
-  return { webauthn, pubKey, pubKeyContract };
+  const TxAuthenticator = await hre.ethers.getContractFactory(
+    "TxAuthenticator",
+    {
+      libraries: { OptimizedCurve: optimizedCurve.address },
+    }
+  );
+  const txauthenticator = await TxAuthenticator.deploy(
+    pubKeyContract.address,
+    amount,
+    owner
+    // "0x91da5bf3f8eb72724e6f50ec6c3d199c6355c59c"
+  );
+
+  return { webauthn, pubKey, pubKeyContract, txauthenticator };
 }
