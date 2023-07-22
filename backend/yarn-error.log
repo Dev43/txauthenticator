@@ -1,0 +1,47 @@
+Arguments: 
+  /home/dev43/.nvm/versions/node/v18.12.1/bin/node /usr/share/yarn/bin/yarn.js add @pushprotocol/socket dotenv @pushprotocol/restapi ethers child_process node:fs
+
+PATH: 
+  /home/dev43/.pyenv/plugins/pyenv-virtualenv/shims:~/.pyenv/bin:/home/dev43/.pyenv/plugins/pyenv-virtualenv/shims:~/.pyenv/bin:/home/dev43/.pyenv/plugins/pyenv-virtualenv/shims:~/.pyenv/bin:/home/dev43/.pyenv/plugins/pyenv-virtualenv/shims:~/.pyenv/bin:/home/dev43/miniconda3/bin:/home/dev43/miniconda3/condabin:/home/dev43/.pyenv/plugins/pyenv-virtualenv/shims:~/.pyenv/bin:/home/dev43/.pyenv/plugins/pyenv-virtualenv/shims:~/.pyenv/bin:/home/dev43/.nvm/versions/node/v18.12.1/bin:/home/dev43/.3em/bin:/home/dev43/.cargo/bin:/home/dev43/.local/bin:/home/dev43/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/snap/bin:/usr/local/go/bin:/home/dev43/go/bin:/home/dev43/.yarn/bin:/home/dev43/.foundry/bin:/home/dev43/.protostar/dist/protostar:/home/dev43/.nargo/bin:/home/dev43/.foundry/bin:/home/dev43/.protostar/dist/protostar:/home/dev43/.nargo/bin:/home/dev43/.foundry/bin:/home/dev43/.protostar/dist/protostar:/home/dev43/.nargo/bin
+
+Yarn version: 
+  1.22.5
+
+Node version: 
+  18.12.1
+
+Platform: 
+  linux x64
+
+Trace: 
+  Error: node:fs: Invalid protocol: node:
+      at module.exports.Request.init (/usr/share/yarn/lib/cli.js:141018:31)
+      at new Request (/usr/share/yarn/lib/cli.js:140691:8)
+      at request (/usr/share/yarn/lib/cli.js:137597:10)
+      at RequestManager.execute (/usr/share/yarn/lib/cli.js:67040:15)
+      at RequestManager.shiftQueue (/usr/share/yarn/lib/cli.js:67078:10)
+      at /usr/share/yarn/lib/cli.js:66747:13
+      at new Promise (<anonymous>)
+      at new F (/usr/share/yarn/lib/cli.js:5301:28)
+      at RequestManager.request (/usr/share/yarn/lib/cli.js:66745:19)
+      at NpmRegistry.<anonymous> (/usr/share/yarn/lib/cli.js:31704:42)
+
+npm manifest: 
+  {
+    "name": "backend",
+    "type": "module",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "scripts": {
+      "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "author": "",
+    "license": "ISC"
+  }
+
+yarn manifest: 
+  No manifest
+
+Lockfile: 
+  No lockfile

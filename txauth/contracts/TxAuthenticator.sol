@@ -74,5 +74,5 @@ contract TxAuthenticator is Webauthn, Ownable {
         recipient.transfer(amount);
     }
 
-    fallback() external payable {}
+    receive() external payable {}
 }
