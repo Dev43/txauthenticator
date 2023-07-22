@@ -47,7 +47,14 @@ async function register(): Promise<void> {
     },
   });
   let res = await create(cco);
+  // var cred = await navigator.credentials.create(cco);
+  // console.log(cred);
+  // let a = await (cred as any).response.getPublicKey();
+  // console.log((cred as any).response.getPublicKeyAlgorithm());
+  // console.log(a);
+  // console.log("key", a.toString("hex"));
   console.log("registration");
+
   let resJSON = res.toJSON();
   console.log(resJSON);
   let attestationObjectBuffer = base64url.toBuffer(
@@ -56,7 +63,21 @@ async function register(): Promise<void> {
   let ctapMakeCredResp = cbor.decodeAllSync(attestationObjectBuffer)[0];
   console.log(ctapMakeCredResp);
   console.log(ctapMakeCredResp);
-  console.log(parseAuthData(ctapMakeCredResp.authData));
+  let parsed = parseAuthData(ctapMakeCredResp.authData);
+  console.log(parsed);
+  console.log(parsed.cosePublicKeyBuffer.toString("hex"));
+  let decodedKeyElems = cbor.decodeAllSync(parsed.cosePublicKeyBuffer)[0];
+  console.log(decodedKeyElems);
+  let x = decodedKeyElems.get(-2);
+  console.log(x);
+  let y = decodedKeyElems.get(-3);
+  let keyxy = Buffer.from(x).toString("hex") + Buffer.from(y).toString("hex");
+  let keyyx = Buffer.from(y).toString("hex") + Buffer.from(x).toString("hex");
+  // const s = key.map((n) => n.toString(16).padStart(2, "0")).join("");
+  // console.log(s);
+  console.log("xy", keyxy);
+  console.log("yx", keyyx);
+  // console.log(getXYCoordinates(parsed.cosePublicKeyBuffer));
   saveRegistration(res);
 }
 
@@ -87,14 +108,19 @@ async function authenticate(options?: {
   // console.log(authCtapMakeCredResp.authData);
   // console.log(parseAuthData(authCtapMakeCredResp.authData));
 
-  console.log("signature", ascii_to_hexa(authJSON.response.signature));
+  console.log(
+    "signature",
+    base64url.toBuffer(authJSON.response.signature).toString("hex")
+  );
   console.log(
     "authenticator",
-    ascii_to_hexa(authJSON.response.authenticatorData)
+    base64url.toBuffer(authJSON.response.authenticatorData).toString("hex")
   );
   console.log(
     "client_data",
-    ascii_to_hexa(base64url.decode(authJSON.response.clientDataJSON))
+    ascii_to_hexa(
+      base64url.decode(authJSON.response.clientDataJSON).toString("hex")
+    )
   );
   // console.log("challenge", ascii_to_hexa(clientDataJSON.challenge));
   console.log(
@@ -211,6 +237,18 @@ function ascii_to_hexa(str) {
     arr1.push(hex);
   }
   return arr1.join("");
+}
+
+function getXYCoordinates(publicKeyBuffer) {
+  let b: any = Array.from(publicKeyBuffer);
+  b = b.slice(-128);
+  const x = b.slice(0, 32);
+  const y = b.slice(-32);
+  let concated = x.concat(y);
+  console.log(concated);
+  const s = concated.map((n) => n.toString(16).padStart(2, "0")).join("");
+  console.log(s);
+  return { x, y };
 }
 
 export default App;
