@@ -42,6 +42,7 @@ contract TxAuthenticator is Webauthn, Ownable {
             revert("Daily limit exceeded");
         }
         recipient.transfer(amount);
+        lastBlock = block.number;
     }
 
     function authenticatedTransfer(
@@ -55,23 +56,25 @@ contract TxAuthenticator is Webauthn, Ownable {
         uint[2] memory rs
     ) public onlyOwner {
         // we assume a 12s block, so 7200 for a day
-        if (spentToday + amount <= spendLimitPerDay) {
-            spentToday += amount;
-        } else if (block.number - lastBlock < 7200) {
-            spentToday = amount;
-        } else {
-            validate(
-                authenticatorData,
-                authenticatorDataFlagMask,
-                clientData,
-                clientChallenge,
-                clientChallengeDataOffset,
-                rs,
-                yubikeyPubKeyContract
-            );
-            challenges[clientChallenge] = true;
-        }
+        // require(!challenges[clientChallenge], "Challenge already used");
+        // if (spentToday + amount <= spendLimitPerDay) {
+        //     spentToday += amount;
+        // } else if (block.number - lastBlock < 7200) {
+        //     spentToday = amount;
+        // } else {
+        validate(
+            authenticatorData,
+            authenticatorDataFlagMask,
+            clientData,
+            clientChallenge,
+            clientChallengeDataOffset,
+            rs,
+            yubikeyPubKeyContract
+        );
+        challenges[clientChallenge] = true;
+        // }
         recipient.transfer(amount);
+        // lastBlock = block.number;
     }
 
     event Received(address, uint);
