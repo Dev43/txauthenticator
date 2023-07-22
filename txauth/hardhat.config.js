@@ -1,7 +1,7 @@
-const { ethers } = require('ethers');
+const { ethers } = require("ethers");
 
 require("@nomicfoundation/hardhat-toolbox");
-require('hardhat-gas-reporter');
+require("hardhat-gas-reporter");
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
@@ -16,8 +16,11 @@ module.exports = {
   },
   networks: {
     l2: {
-      url: 'https://replica0.goerli.optimism.alembic.tech/',
+      url: "https://replica0.goerli.optimism.alembic.tech/",
       accounts: [process.env.PRIVATE_KEY || ethers.constants.HashZero],
+    },
+    hardhat: {
+      chainId: 1337, // We set 1337 to make interacting with MetaMask simpler
     },
   },
   gasReporter: {

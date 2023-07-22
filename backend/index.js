@@ -12,6 +12,10 @@ const PK = process.env.PRIVATE_KEY;
 // interact with the contract through the frontend + send the correct info
 // see if it works
 const start = async () => {
+  await deploy();
+};
+
+const deploy = async () => {
   const command = spawn(
     "npx",
     [
@@ -45,5 +49,4 @@ const start = async () => {
     console.log(`deploy process exited with code ${code}`);
   });
 };
-
 start().catch(console.error);
