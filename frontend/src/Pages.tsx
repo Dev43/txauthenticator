@@ -9,10 +9,17 @@ import {
   w3mProvider,
 } from "@web3modal/ethereum";
 import { Web3Modal, useWeb3Modal } from "@web3modal/react";
-import { configureChains, createConfig, WagmiConfig } from "wagmi";
+import {
+  configureChains,
+  createConfig,
+  useSignMessage,
+  WagmiConfig,
+} from "wagmi";
 import { arbitrum, mainnet, polygon } from "wagmi/chains";
 import { Web3Button } from "@web3modal/react";
 import { useAccount } from "wagmi";
+import { Client } from "@xmtp/xmtp-js";
+import { Wallet } from "ethers";
 import {
   parseCreationOptionsFromJSON,
   create,
@@ -22,22 +29,51 @@ import {
   AuthenticationPublicKeyCredential,
 } from "@github/webauthn-json/browser-ponyfill";
 import { ascii_to_hexa, parseAuthData } from "./utils";
+import { ethers } from "ethers";
 const base64url = require("base64url");
 const cbor = require("cbor");
+
+// useless PK address is 0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199
+const PK = "df57089febbacf7ba0bc227dafbffa9fc08a93fdc68e1e42411a14efcf23656e";
+// const PK = process.env.ROBOT_PRIVATE_KEY;
+const Pkey = `0x${PK}`;
+const _signer = new ethers.Wallet(Pkey);
 
 export function Pages() {
   const { open, close } = useWeb3Modal();
   const [step, setStep] = useState(0);
   const [canDeploy, setCanDeploy] = useState(false);
   const { connector: activeConnector, isConnected, address } = useAccount();
+
   console.log(address);
+  console.log(activeConnector);
+
+  const xmtp = async () => {
+    // You'll want to replace this with a wallet from your application
+    // Create the client with your wallet. This will connect to the XMTP development network by default
+    const xmtp = await Client.create(_signer, { env: "dev" });
+    // Start a conversation with XMTP
+    const conversation = await xmtp.conversations.newConversation(
+      "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+    );
+    // Load all messages in the conversation
+    const messages = await conversation.messages();
+    console.log(messages);
+    // Send a message
+    await conversation.send("gm from frontend");
+    // Listen for new messages in the conversation
+    for await (const message of await conversation.streamMessages()) {
+      console.log(message);
+      console.log(`[${message.senderAddress}]: ${message.content}`);
+    }
+  };
+
   return (
     <div>
       {!isConnected ? (
         <header className="App-header">
           <img src={main} />
           <p>Secure your Ethereum Wallet with 2FA</p>
-
           <div style={{ fontSize: "12px" }}>
             Safeguard your assets by setting a daily transaction limit and using
             a YubiKey for authorizing higher-value transactions
@@ -55,6 +91,7 @@ export function Pages() {
       ) : (
         <div>
           {/* {address} */}
+          <button onClick={async () => xmtp()}>XMTP CLICK ME</button>
 
           <div>
             2FA not enabled. Set your daily transaction limit and pair your

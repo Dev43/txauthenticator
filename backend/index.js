@@ -5,11 +5,32 @@ import ethers from "ethers";
 import { exec, spawn } from "child_process";
 import { promises } from "node:fs";
 import txauthenticator_abi from "./abi.js";
+import { Client } from "@xmtp/xmtp-js";
 
 const PK = "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
 // const PK = process.env.ROBOT_PRIVATE_KEY;
 const Pkey = `0x${PK}`;
 const _signer = new ethers.Wallet(Pkey);
+
+const xmtpInit = async () => {
+  // Create the client with your wallet. This will connect to the XMTP development network by default
+  const xmtp = await Client.create(_signer, { env: "dev" });
+  // Start a conversation with XMTP
+  const conversation = await xmtp.conversations.newConversation(
+    "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199"
+  );
+  // Load all messages in the conversation
+  const messages = await conversation.messages();
+  // Send a message
+  await conversation.send("gm from backend");
+  // Listen for new messages in the conversation
+  for await (const message of await conversation.streamMessages()) {
+    console.log(message);
+    console.log(`[${message.senderAddress}]: ${message.content}`);
+  }
+};
+
+xmtpInit().catch(console.error);
 
 const contractAddress = "0x36b58F5C1969B7b6591D752ea6F5486D069010AB";
 const publicKey =
