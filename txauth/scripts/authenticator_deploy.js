@@ -14,9 +14,10 @@ async function main() {
   const auth = await deploy();
 
   console.log("webauth", auth.webauthn.address);
-  // console.log(auth.pubKey);
+  console.log(auth.pubKey);
   console.log("pub key contract", auth.pubKeyContract.address);
   console.log("txauth contract", auth.txauthenticator.address);
+  console.log("!Success! " + auth.txauthenticator.address);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

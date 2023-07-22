@@ -7,6 +7,7 @@ import { promises } from "node:fs";
 import txauthenticator_abi from "./abi.js";
 import { Client } from "@xmtp/xmtp-js";
 
+// 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
 const PK = "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
 // const PK = process.env.ROBOT_PRIVATE_KEY;
 const Pkey = `0x${PK}`;
@@ -20,23 +21,29 @@ const xmtpInit = async () => {
     "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199"
   );
   // Load all messages in the conversation
-  const messages = await conversation.messages();
+  // const messages = await conversation.messages();
   // Send a message
   await conversation.send("gm from backend");
   // Listen for new messages in the conversation
   for await (const message of await conversation.streamMessages()) {
-    console.log(message);
     console.log(`[${message.senderAddress}]: ${message.content}`);
+
+    if (message.content.includes("deploy")) {
+      let info = JSON.parse(message.content.split("deploy")[1]);
+      await deploy(conversation, info.publicKey, info.owner, info.amount).catch(
+        console.error
+      );
+    }
   }
 };
 
 xmtpInit().catch(console.error);
 
 const contractAddress = "0x36b58F5C1969B7b6591D752ea6F5486D069010AB";
-const publicKey =
-  "07886971cfd953bd4fe0f1ec9933c05892964738ac614998444447ec1184f9afed18f478816e921ef826168739f16849bea73bad056e06b2b6f6b3abd2b473e6";
-const owner = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
-const amount = 1;
+// const publicKey =
+//   "07886971cfd953bd4fe0f1ec9933c05892964738ac614998444447ec1184f9afed18f478816e921ef826168739f16849bea73bad056e06b2b6f6b3abd2b473e6";
+// const owner = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
+// const amount = 1;
 
 const provider = new ethers.providers.JsonRpcProvider("http://localhost:8545");
 
@@ -52,9 +59,9 @@ const wallet = new ethers.Wallet(PK, provider);
 const start = async () => {
   console.log(process.argv);
   if (process.argv.length > 2 && process.argv[2] === "deploy") {
-    await deploy();
+    // await deploy();
   } else {
-    await transfer();
+    // await transfer();
   }
 };
 
@@ -123,7 +130,8 @@ const transfer = async () => {
   // change the PK
 };
 
-const deploy = async () => {
+const deploy = async (conversation, publicKey, owner, amount) => {
+  console.log(publicKey, owner, amount);
   const command = spawn(
     "npx",
     [
@@ -146,6 +154,12 @@ const deploy = async () => {
   command.stdout.on("data", async (chunk) => {
     let data = chunk.toString().trim();
     console.log("Deploy:", data);
+    if (data.includes("!Success!")) {
+      let address = data.split("!Success! ")[1];
+      console.log("Deployed to:", address);
+      await conversation.send(`Deployed to: ${address}`);
+      return address;
+    }
   });
 
   command.stderr.on("data", (data) => {
