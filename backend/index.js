@@ -23,7 +23,7 @@ const xmtpInit = async () => {
   // Load all messages in the conversation
   // const messages = await conversation.messages();
   // Send a message
-  await conversation.send("gm from backend");
+  // await conversation.send("gm from backend");
   // Listen for new messages in the conversation
   for await (const message of await conversation.streamMessages()) {
     console.log(`[${message.senderAddress}]: ${message.content}`);

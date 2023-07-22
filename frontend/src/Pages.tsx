@@ -14,10 +14,12 @@ import {
   createConfig,
   useSignMessage,
   WagmiConfig,
+  useContractRead,
+  useBalance,
+  useAccount,
 } from "wagmi";
-import { arbitrum, mainnet, polygon } from "wagmi/chains";
+import { arbitrum, mainnet, polygon, localhost } from "wagmi/chains";
 import { Web3Button } from "@web3modal/react";
-import { useAccount } from "wagmi";
 import { Client } from "@xmtp/xmtp-js";
 import { Wallet } from "ethers";
 import {
@@ -30,6 +32,7 @@ import {
 } from "@github/webauthn-json/browser-ponyfill";
 import { ascii_to_hexa, parseAuthData } from "./utils";
 import { ethers } from "ethers";
+import txauthenticator_abi from "./abi";
 const base64url = require("base64url");
 const cbor = require("cbor");
 
@@ -63,7 +66,6 @@ export function Pages() {
   }, []);
 
   console.log(address);
-  console.log(activeConnector);
 
   const confirmAndDeploy = async () => {
     setIsDeploying(true);
@@ -124,14 +126,14 @@ export function Pages() {
     );
   } else if (isConnected && contractAddress) {
     toRender = (
-      <WalletPage contractAddress={contractAddress} txLimit={txLimit} />
+      <WalletPage contractAddress={contractAddress} address={address} />
     );
   }
 
   return <div>{toRender}</div>;
 }
 
-const HomePage = (open) => {
+const HomePage = ({ open }) => {
   return (
     <header className="App-header">
       <img src={main} />
@@ -241,10 +243,68 @@ const Setup = ({
   );
 };
 
-const WalletPage = ({ txLimit, contractAddress }) => {
+const WalletPage = ({ contractAddress, address }) => {
+  const {
+    data: txLimit,
+    isError,
+    isLoading,
+  } = useContractRead({
+    address: contractAddress,
+    abi: txauthenticator_abi,
+    functionName: "getSpendLimitPerDay",
+  });
+  // console.log(data);
+  const {
+    data: myBalance,
+    isError: isErrorBal1,
+    isLoading: isLoadingBal1,
+  } = useBalance({
+    address: address,
+  });
+  const {
+    data: contractBalance,
+    isError: isErrorBal2,
+    isLoading: isLoadingBal2,
+  } = useBalance({
+    address: contractAddress,
+  });
+
+  const [addressToSendTo, setAddressToSendTo] = useState("");
+  const [amountToSend, setAmountToSend] = useState(0);
+  const [needsVerification, setNeedsVerification] = useState(false);
+
+  useEffect(() => {
+    if (txLimit && +amountToSend >= +txLimit.toString()) {
+      setNeedsVerification(true);
+    } else {
+      setNeedsVerification(false);
+    }
+  }, [amountToSend, txLimit]);
+
+  const handleSend = async () => {};
+
   return (
     <div>
-      {/* {address} */}
+      <div className="flex space-x-1">
+        <div>{address && address.substring(0, 5) + "..."}</div>
+        <div>{myBalance ? myBalance.formatted + myBalance.symbol : ""}</div>
+        <div>
+          {contractBalance
+            ? contractBalance.formatted + contractBalance.symbol
+            : ""}
+        </div>
+        <div>
+          <button className="btn btn-primary btn-outline">Deposit</button>
+        </div>
+        <div>
+          <button
+            className="btn btn-primary"
+            onClick={() => (window as any).my_modal_1.showModal()}
+          >
+            Send
+          </button>
+        </div>
+      </div>
 
       <div>2FA is enabled. </div>
       <div className="flex">Wallet Settings</div>
@@ -258,7 +318,7 @@ const WalletPage = ({ txLimit, contractAddress }) => {
         <div>
           <div>Daily Transaction Limit</div>
         </div>
-        <div>{txLimit}</div>
+        <div>{txLimit && txLimit.toString()}</div>
       </div>
       <div className="columns-2">
         <div>
@@ -267,6 +327,48 @@ const WalletPage = ({ txLimit, contractAddress }) => {
         <div>Yubikey NFC</div>
         <div className="text-xs">Added on: July 22, 2023</div>
       </div>
+
+      <dialog id="my_modal_1" className="modal">
+        <form method="dialog" className="modal-box">
+          Transfer funds
+          <div className="flex">Send to</div>
+          <input
+            className="input"
+            value={addressToSendTo}
+            onChange={(e) => setAddressToSendTo(e.target.value)}
+            placeholder="Enter an address or ENS"
+          ></input>
+          <div className="flex">Amount</div>
+          <div className="flex justify-center items-center">
+            <input
+              className="input"
+              type="number"
+              value={amountToSend}
+              onChange={(e) => setAmountToSend(+e.target.value)}
+              placeholder="Enter an amount"
+            ></input>{" "}
+            ETH
+          </div>
+          {needsVerification && (
+            <div>
+              This amount is greater than your daily limit. Security
+              verification required.
+            </div>
+          )}
+          <div className="flex items-center">
+            <div className="modal-action">
+              {/* if there is a button in form, it will close the modal */}
+              <button className="btn">Cancel</button>
+              <div
+                className="btn btn-primary"
+                onClick={async () => await handleSend().catch(console.error)}
+              >
+                Send
+              </div>
+            </div>
+          </div>
+        </form>
+      </dialog>
     </div>
   );
 };
