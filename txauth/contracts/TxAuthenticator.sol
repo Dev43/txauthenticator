@@ -36,7 +36,10 @@ contract TxAuthenticator is Webauthn, Ownable {
     ) public onlyOwner {
         if (spentToday + amount <= spendLimitPerDay) {
             spentToday += amount;
-        } else if (block.number - lastBlock < 7200) {
+        } else if (
+            spentToday + amount <= spendLimitPerDay &&
+            block.number - lastBlock < 7200
+        ) {
             spentToday = amount;
         } else {
             revert("Daily limit exceeded");
@@ -59,7 +62,7 @@ contract TxAuthenticator is Webauthn, Ownable {
         // require(!challenges[clientChallenge], "Challenge already used");
         // if (spentToday + amount <= spendLimitPerDay) {
         //     spentToday += amount;
-        // } else if (block.number - lastBlock < 7200) {
+        // } else if (spentToday + amount <= spendLimitPerDay && block.number - lastBlock < 7200) {
         //     spentToday = amount;
         // } else {
         validate(

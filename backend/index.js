@@ -11,7 +11,7 @@ const PK = "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
 const Pkey = `0x${PK}`;
 const _signer = new ethers.Wallet(Pkey);
 
-const contractAddress = "0x4826533B4897376654Bb4d4AD88B7faFD0C98528";
+const contractAddress = "0x36b58F5C1969B7b6591D752ea6F5486D069010AB";
 const publicKey =
   "07886971cfd953bd4fe0f1ec9933c05892964738ac614998444447ec1184f9afed18f478816e921ef826168739f16849bea73bad056e06b2b6f6b3abd2b473e6";
 const owner = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
@@ -90,7 +90,7 @@ const transfer = async () => {
   );
   // let tx = await txauthenticator.simpleTransfer(
   //   "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
-  //   "2",
+  //   "1",
   //   { gasLimit: 400000 }
   // );
   console.log(tx);
