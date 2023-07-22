@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import main from "./images/main.png";
 import shield from "./images/shield.png";
 import greenShield from "./images/greenShield.png";
+import goodShield from "./images/goodShield.png";
 import yubikey from "./images/yubikey.png";
 import nounCircle from "./images/nounCircle.png";
 import nounShield from "./images/nounShield.png";
@@ -400,7 +401,7 @@ const WalletPage = ({ contractAddress, address }) => {
                 "..." +
                 address.substring(address.length - 4, address.length - 1)}
           </div>
-          <img height={"200px"} width={"100px"} src={nounShield} />
+          <img height={"40px"} width={"40px"} src={goodShield} />
           <div>
             {contractBalance
               ? contractBalance.formatted + contractBalance.symbol
