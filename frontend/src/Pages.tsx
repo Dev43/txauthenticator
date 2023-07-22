@@ -265,18 +265,6 @@ const WalletPage = ({ contractAddress, address }) => {
     gas: 400000,
   } as any);
 
-  // const {
-  //   data: authData,
-  //   isLoading: isAuthWriteLoading,
-  //   isSuccess: isAuthWriteSuccess,
-  //   write: authenticatedTransfer,
-  // } = useContractWrite({
-  //   address: contractAddress,
-  //   abi: txauthenticator_abi,
-  //   functionName: "authenticatedTransfer",
-  //   gas: 400000,
-  // } as any);
-
   const [addressToSendTo, setAddressToSendTo] = useState("");
   const [amountToSend, setAmountToSend] = useState(0);
   const [needsVerification, setNeedsVerification] = useState(false);
@@ -310,7 +298,8 @@ const WalletPage = ({ contractAddress, address }) => {
             Buffer.from(res.challenge, "hex"),
             // THIS WAS THE ERROR
             36,
-            res.sig
+            res.sig,
+            { gasLimit: 600000 }
           )
           .catch(console.error)
       );
@@ -439,7 +428,7 @@ export default Pages;
 async function register(): Promise<string> {
   const cco = parseCreationOptionsFromJSON({
     publicKey: {
-      challenge: "NTo-1aBEGRnxxjmkaTHehyrDNX3izlqi1owmOd9UGJ0",
+      challenge: "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
       rp: { name: "txauthenticator" },
       user: {
         id: "IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII",
@@ -506,7 +495,7 @@ async function authenticate(options?: {
 }): Promise<any> {
   const cro = parseRequestOptionsFromJSON({
     publicKey: {
-      challenge: "NTo-1aBEGRnxxjmkaTHehyrDNX3izlqi1owmOd9UGJ0",
+      challenge: "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
       allowCredentials: registeredCredentials(),
       userVerification: "discouraged",
     },
@@ -538,10 +527,9 @@ async function authenticate(options?: {
   // let challenge = Buffer.from(clientDataJSON.challenge, "hex");
   console.log("challenge", challenge);
 
-  // MIGHT NEED TO BE HEX
+  // THIS IS A BUG HERE IT DOESNT DO IT OVER HEX
   const challengeOffset =
     clientData.indexOf("226368616c6c656e6765223a", 0) + 12 + 1;
-  console.log("offsert", challengeOffset);
   // clientData.indexOf("226368616c6c656e6765223a", 0, "hex") + 12 + 1;
   const signatureParsed = derToRS(signature);
   console.log(signatureParsed);
