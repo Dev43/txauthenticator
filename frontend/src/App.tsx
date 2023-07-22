@@ -27,7 +27,7 @@ async function register(): Promise<void> {
   const cco = parseCreationOptionsFromJSON({
     publicKey: {
       challenge: "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
-      rp: { name: "Localhost, Inc." },
+      rp: { name: "txauthenticator" },
       user: {
         id: "IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII",
         name: "test_user",
@@ -75,6 +75,10 @@ async function authenticate(options?: {
   let auth = await get(cro);
   let authJSON = auth.toJSON();
   console.log(authJSON);
+  let clientDataJSON = JSON.parse(
+    base64url.decode(authJSON.response.clientDataJSON)
+  );
+  console.log(clientDataJSON);
   // let authObjectBuffer = base64url.toBuffer(
   //   authJSON.response.authenticatorData
   // );
@@ -82,6 +86,21 @@ async function authenticate(options?: {
   // console.log(authCtapMakeCredResp);
   // console.log(authCtapMakeCredResp.authData);
   // console.log(parseAuthData(authCtapMakeCredResp.authData));
+
+  console.log("signature", ascii_to_hexa(authJSON.response.signature));
+  console.log(
+    "authenticator",
+    ascii_to_hexa(authJSON.response.authenticatorData)
+  );
+  console.log(
+    "client_data",
+    ascii_to_hexa(base64url.decode(authJSON.response.clientDataJSON))
+  );
+  // console.log("challenge", ascii_to_hexa(clientDataJSON.challenge));
+  console.log(
+    "challenge",
+    base64url.toBuffer(clientDataJSON.challenge).toString("hex")
+  );
   return auth;
 }
 
@@ -183,6 +202,15 @@ function App() {
       </header>
     </div>
   );
+}
+
+function ascii_to_hexa(str) {
+  var arr1 = [];
+  for (var n = 0, l = str.length; n < l; n++) {
+    var hex = Number(str.charCodeAt(n)).toString(16);
+    arr1.push(hex);
+  }
+  return arr1.join("");
 }
 
 export default App;
