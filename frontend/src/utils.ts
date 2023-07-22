@@ -85,3 +85,25 @@ export function ascii_to_hexa(str) {
   }
   return arr1.join("");
 }
+
+export function derToRS(der) {
+  var offset = 3;
+  var dataOffset;
+
+  if (der[offset] == 0x21) {
+    dataOffset = offset + 2;
+  } else {
+    dataOffset = offset + 1;
+  }
+  const r = der.slice(dataOffset, dataOffset + 32);
+  offset = offset + der[offset] + 1 + 1;
+  if (der[offset] == 0x21) {
+    dataOffset = offset + 2;
+  } else {
+    dataOffset = offset + 1;
+  }
+  const s = der.slice(dataOffset, dataOffset + 32);
+  return [r, s];
+}
+
+(window as any).derToRS = derToRS;

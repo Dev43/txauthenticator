@@ -3,36 +3,25 @@ import main from "./images/main.png";
 import "./App.css";
 import { type PublicKeyCredentialDescriptorJSON } from "@github/webauthn-json";
 import { getRegistrations, saveRegistration, setRegistrations } from "./state";
+import { useWeb3Modal } from "@web3modal/react";
 import {
-  EthereumClient,
-  w3mConnectors,
-  w3mProvider,
-} from "@web3modal/ethereum";
-import { Web3Modal, useWeb3Modal } from "@web3modal/react";
-import {
-  configureChains,
-  createConfig,
-  useSignMessage,
-  WagmiConfig,
   useContractRead,
   useBalance,
   useAccount,
+  useContractWrite,
+  usePrepareContractWrite,
 } from "wagmi";
-import { arbitrum, mainnet, polygon, localhost } from "wagmi/chains";
-import { Web3Button } from "@web3modal/react";
 import { Client } from "@xmtp/xmtp-js";
-import { Wallet } from "ethers";
 import {
   parseCreationOptionsFromJSON,
   create,
   get,
   parseRequestOptionsFromJSON,
-  supported,
-  AuthenticationPublicKeyCredential,
 } from "@github/webauthn-json/browser-ponyfill";
-import { ascii_to_hexa, parseAuthData } from "./utils";
+import { ascii_to_hexa, derToRS, parseAuthData } from "./utils";
 import { ethers } from "ethers";
 import txauthenticator_abi from "./abi";
+import { useEthersSigner } from "./ethers";
 const base64url = require("base64url");
 const cbor = require("cbor");
 
@@ -145,12 +134,6 @@ const HomePage = ({ open }) => {
       <button className="btn btn-primary" onClick={() => open()}>
         Connect Wallet
       </button>
-
-      {/* <button
-        onClick={async () => await authenticate().catch(console.error)}
-      >
-        Authenticate
-      </button> */}
     </header>
   );
 };
@@ -244,6 +227,7 @@ const Setup = ({
 };
 
 const WalletPage = ({ contractAddress, address }) => {
+  const signer = useEthersSigner();
   const {
     data: txLimit,
     isError,
@@ -269,6 +253,30 @@ const WalletPage = ({ contractAddress, address }) => {
     address: contractAddress,
   });
 
+  const {
+    data: simpleTransferData,
+    isLoading: isSimpleContractWriteLoading,
+    isSuccess: isSimpleContractWriteSuccess,
+    write: simpleTransferWrite,
+  } = useContractWrite({
+    address: contractAddress,
+    abi: txauthenticator_abi,
+    functionName: "simpleTransfer",
+    gas: 400000,
+  } as any);
+
+  // const {
+  //   data: authData,
+  //   isLoading: isAuthWriteLoading,
+  //   isSuccess: isAuthWriteSuccess,
+  //   write: authenticatedTransfer,
+  // } = useContractWrite({
+  //   address: contractAddress,
+  //   abi: txauthenticator_abi,
+  //   functionName: "authenticatedTransfer",
+  //   gas: 400000,
+  // } as any);
+
   const [addressToSendTo, setAddressToSendTo] = useState("");
   const [amountToSend, setAmountToSend] = useState(0);
   const [needsVerification, setNeedsVerification] = useState(false);
@@ -281,7 +289,60 @@ const WalletPage = ({ contractAddress, address }) => {
     }
   }, [amountToSend, txLimit]);
 
-  const handleSend = async () => {};
+  const handleSend = async () => {
+    if (needsVerification) {
+      let res = await authenticate().catch(console.error);
+      // let provider = ethers.getDefaultProvider("http://localhost:8545");
+      const myContract = new ethers.Contract(
+        contractAddress,
+        txauthenticator_abi,
+        signer
+      );
+
+      console.log(
+        await myContract
+          .authenticatedTransfer(
+            addressToSendTo,
+            amountToSend,
+            Buffer.from(res.authenticator, "hex"),
+            "0x01",
+            Buffer.from(res.clientData, "hex"),
+            Buffer.from(res.challenge, "hex"),
+            // THIS WAS THE ERROR
+            36,
+            res.sig
+          )
+          .catch(console.error)
+      );
+
+      // console.log(args);
+      // // hard transfer
+      // console.log(
+      //   // @ts-ignore
+      //   authenticatedTransfer({
+      //     args: args,
+      //   })
+      // );
+
+      // let tx = await txauthenticator.authenticatedTransfer(
+      //   "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
+      //   "2000",
+      //   authenticatorData,
+      //   0x01,
+      //   clientData,
+      //   clientChallenge,
+      //   challengeOffset,
+      //   sig,
+      //   { gasLimit: 4000000 }
+      // );
+    } else {
+      // simpleTransfer
+      console.log(
+        // @ts-ignore
+        simpleTransferWrite({ args: [addressToSendTo, amountToSend] } as any)
+      );
+    }
+  };
 
   return (
     <div>
@@ -378,7 +439,7 @@ export default Pages;
 async function register(): Promise<string> {
   const cco = parseCreationOptionsFromJSON({
     publicKey: {
-      challenge: "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+      challenge: "NTo-1aBEGRnxxjmkaTHehyrDNX3izlqi1owmOd9UGJ0",
       rp: { name: "txauthenticator" },
       user: {
         id: "IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII",
@@ -442,10 +503,10 @@ function registeredCredentials(): PublicKeyCredentialDescriptorJSON[] {
 // ALL I NEED TO SAVE IS THE ID AND THE TYPE (+ public key to verify all of it)
 async function authenticate(options?: {
   conditionalMediation?: boolean;
-}): Promise<AuthenticationPublicKeyCredential> {
+}): Promise<any> {
   const cro = parseRequestOptionsFromJSON({
     publicKey: {
-      challenge: "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+      challenge: "NTo-1aBEGRnxxjmkaTHehyrDNX3izlqi1owmOd9UGJ0",
       allowCredentials: registeredCredentials(),
       userVerification: "discouraged",
     },
@@ -457,27 +518,48 @@ async function authenticate(options?: {
   let clientDataJSON = JSON.parse(
     base64url.decode(authJSON.response.clientDataJSON)
   );
-  console.log(clientDataJSON);
+  console.log("clientDataJSON", clientDataJSON);
 
-  console.log(
-    "signature",
-    base64url.toBuffer(authJSON.response.signature).toString("hex")
-  );
-  console.log(
-    "authenticator",
-    base64url.toBuffer(authJSON.response.authenticatorData).toString("hex")
-  );
-  console.log(
-    "client_data",
-    ascii_to_hexa(
-      base64url.decode(authJSON.response.clientDataJSON).toString("hex")
-    )
-  );
-  console.log(
-    "challenge",
-    base64url.toBuffer(clientDataJSON.challenge).toString("hex")
-  );
-  return auth;
+  let signature = base64url.toBuffer(authJSON.response.signature);
+  // let sig1 = base64url.toBuffer(authJSON.response.signature).toString("hex");
+  console.log("signature", signature);
+  // console.log("signature1", sig1);
+  let authenticator = base64url
+    .toBuffer(authJSON.response.authenticatorData)
+    .toString("hex");
+  console.log("authenticator", authenticator);
+  let clientData = base64url
+    .toBuffer(authJSON.response.clientDataJSON)
+    .toString("hex");
+  console.log("client_data", clientData);
+  let challenge = base64url
+    .toBuffer(clientDataJSON.challenge, "hex")
+    .toString("hex");
+  // let challenge = Buffer.from(clientDataJSON.challenge, "hex");
+  console.log("challenge", challenge);
+
+  // MIGHT NEED TO BE HEX
+  const challengeOffset =
+    clientData.indexOf("226368616c6c656e6765223a", 0) + 12 + 1;
+  console.log("offsert", challengeOffset);
+  // clientData.indexOf("226368616c6c656e6765223a", 0, "hex") + 12 + 1;
+  const signatureParsed = derToRS(signature);
+  console.log(signatureParsed);
+  const sig = [
+    ethers.BigNumber.from("0x" + signatureParsed[0].toString("hex")),
+    ethers.BigNumber.from("0x" + signatureParsed[1].toString("hex")),
+  ];
+
+  return {
+    auth,
+    signature,
+    sig,
+    challengeOffset,
+    authenticator,
+    clientData,
+    challenge,
+    flag: "0x01",
+  };
 }
 async function clear(): Promise<void> {
   setRegistrations([]);

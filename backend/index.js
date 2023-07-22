@@ -6,6 +6,7 @@ import { exec, spawn } from "child_process";
 import { promises } from "node:fs";
 import txauthenticator_abi from "./abi.js";
 import { Client } from "@xmtp/xmtp-js";
+import base64url from "base64url";
 
 // 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
 const PK = "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
@@ -191,3 +192,23 @@ function derToRS(der) {
   const s = der.slice(dataOffset, dataOffset + 32);
   return [r, s];
 }
+
+// console.log(
+//   derToRS(
+//     "3046022100e605c81e066771802613626a3ed8124b477f8af2eab46cdc35f202573cc2f9120221008e82687a548a00ec283a4ab1b4bc1d4ddd5bbc24f69e0948fb96c19207f92383"
+//   )
+// );
+
+// let iii = base64url
+//   .toBuffer(
+//     "MEUCIQCSTKb_oCczmFDaYCTyPqFMZB31FznS-Kik0c9wRyiUOAIgDJaJsmnDM__UfwXQ9RPK6eC8eXClF314GSguJACxYAE"
+//   )
+//   .toString("hex");
+// console.log(iii);
+
+// let signatureParsed = derToRS(iii);
+// const sig = [
+//   ethers.BigNumber.from("0x" + signatureParsed[0].toString("hex")),
+//   ethers.BigNumber.from("0x" + signatureParsed[1].toString("hex")),
+// ];
+// console.log(sig);
