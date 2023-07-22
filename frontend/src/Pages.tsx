@@ -1,5 +1,13 @@
 import React, { useCallback, useEffect, useState } from "react";
 import main from "./images/main.png";
+import shield from "./images/shield.png";
+import greenShield from "./images/greenShield.png";
+import yubikey from "./images/yubikey.png";
+import nounCircle from "./images/nounCircle.png";
+import nounShield from "./images/nounShield.png";
+import wallet from "./images/wallet.png";
+import header from "./images/header.png";
+import yubikeyOrange from "./images/yubikeyOrange.png";
 import "./App.css";
 import { type PublicKeyCredentialDescriptorJSON } from "@github/webauthn-json";
 import { getRegistrations, saveRegistration, setRegistrations } from "./state";
@@ -10,6 +18,7 @@ import {
   useAccount,
   useContractWrite,
   usePrepareContractWrite,
+  useSendTransaction,
 } from "wagmi";
 import { Client } from "@xmtp/xmtp-js";
 import {
@@ -22,6 +31,7 @@ import { ascii_to_hexa, derToRS, parseAuthData } from "./utils";
 import { ethers } from "ethers";
 import txauthenticator_abi from "./abi";
 import { useEthersSigner } from "./ethers";
+import { parseEther } from "viem";
 const base64url = require("base64url");
 const cbor = require("cbor");
 
@@ -104,13 +114,13 @@ export function Pages() {
   if (isConnected && !contractAddress) {
     toRender = (
       <Setup
-        xmtp={xmtp}
         txLimit={txLimit}
         setTxLimit={setTxLimit}
         publicKey={publicKey}
         setPublicKey={setPublicKey}
         confirmAndDeploy={confirmAndDeploy}
         isDeploying={isDeploying}
+        address={address}
       />
     );
   } else if (isConnected && contractAddress) {
@@ -119,19 +129,39 @@ export function Pages() {
     );
   }
 
-  return <div>{toRender}</div>;
+  return (
+    <div>
+      <div className="flex border items-center mb-5 py-2 ">
+        <img className="ml-2" width={200} height={10} src={header} />
+        <div className="flex-grow"></div>
+        {/* {isConnected ? (
+          <div>hi</div>
+        ) : (
+          <button className="btn btn-primary btn-sm mr-2 text-[#FFFFFF]">
+            Connect
+          </button>
+        )} */}
+      </div>
+      {toRender}
+    </div>
+  );
 }
 
 const HomePage = ({ open }) => {
   return (
     <header className="App-header">
-      <img src={main} />
-      <p>Secure your Ethereum Wallet with 2FA</p>
-      <div style={{ fontSize: "12px" }}>
+      <img className="p-5" src={main} />
+      <p>
+        <b>Secure your Ethereum Wallet with 2FA</b>
+      </p>
+      <div style={{ fontSize: "10px" }}>
         Safeguard your assets by setting a daily transaction limit and using a
         YubiKey for authorizing higher-value transactions
       </div>
-      <button className="btn btn-primary" onClick={() => open()}>
+      <button
+        className="btn btn-primary text-[#FFFFFF] btn-md my-4"
+        onClick={() => open()}
+      >
         Connect Wallet
       </button>
     </header>
@@ -139,70 +169,103 @@ const HomePage = ({ open }) => {
 };
 
 const Setup = ({
-  xmtp,
   txLimit,
   setTxLimit,
   publicKey,
   setPublicKey,
   confirmAndDeploy,
   isDeploying,
+  address,
 }) => {
+  const {
+    data: myBalance,
+    isError: isErrorBal1,
+    isLoading: isLoadingBal1,
+  } = useBalance({
+    address: address,
+  });
   return (
-    <div>
+    <div className="p-10">
       {/* {address} */}
-      <button onClick={async () => xmtp()}>XMTP CLICK ME</button>
 
-      <div>
+      <div className="flex border rounded-md p-4 text-[#9A9A9A] my-2 space-x-2 items-center">
+        <img height={"49px"} width={"49px"} src={nounCircle} />
+        <div>
+          {address &&
+            address.substring(0, 5) +
+              "..." +
+              address.substring(address.length - 4, address.length - 1)}
+        </div>
+        {/* <img height={"100px"} width={"100px"} src={nounShield} />
+        <div>0</div> */}
+        <img height={"40px"} width={"40px"} src={wallet} />
+        <div>{myBalance ? myBalance.formatted + myBalance.symbol : ""}</div>
+      </div>
+      <div className="flex border rounded-md p-4 text-[#9A9A9A] my-2">
+        <img className="mr-4" src={shield} />
         2FA not enabled. Set your daily transaction limit and pair your security
         key below.
       </div>
-      <div className="flex">Wallet Settings</div>
-      <div className="columns-2">
-        <div>
-          <div>Daily Transaction Limit</div>
-          <div className="text-xs">
-            Decide the maximum amount you can send daily without verification.
-          </div>
+      <div className="flex flex-col border rounded-md p-4  my-2">
+        <div className="bold flex mb-6">
+          <b>Wallet Settings</b>
         </div>
-        <div>
-          <input
-            className="input"
-            type="number"
-            value={txLimit}
-            onChange={(e) => setTxLimit(+e.target.value)}
-            placeholder="Enter an amount"
-          ></input>
-        </div>
-      </div>
-      <div className="columns-2">
-        <div>
-          <div>Security Key</div>
-          <div>
-            <div className="text-xs">
+        <div className="flex items-center ">
+          <div className="mb-8">
+            <div>Daily Transaction Limit</div>
+            <div className="text-xs align-right" style={{ fontSize: "10px" }}>
               Decide the maximum amount you can send daily without verification.
             </div>
           </div>
+          <div className="flex-grow"></div>
+          <div>
+            <input
+              className="input input-bordered mr-2"
+              type="number"
+              value={txLimit}
+              onChange={(e) => setTxLimit(+e.target.value)}
+              placeholder="Enter an amount"
+            ></input>
+            WEI
+          </div>
         </div>
-        {publicKey ? (
-          <div>Paired!</div>
-        ) : (
-          <button
-            className="btn btn-primary"
-            onClick={async () => {
-              try {
-                let publicKey = await register();
-                setPublicKey(publicKey);
-                localStorage.setItem("publicKey", publicKey);
-              } catch (e) {
-                console.error(e);
-              }
-            }}
-          >
-            Pair your security key
-          </button>
-        )}
-      </div>
-      {/* <div className="columns-2">
+        <div className="flex">
+          <div className="mb-8">
+            <div>Security Key</div>
+            <div>
+              <div className="" style={{ fontSize: "10px" }}>
+                Decide the maximum amount you can send daily without
+                verification.
+              </div>
+            </div>
+          </div>
+          <div className="flex-grow"></div>
+          {publicKey ? (
+            <div className="flex items-center">
+              <img height={"40px"} width={"40px"} src={yubikey} />
+              <div className="flex flex-col">
+                <div>Yubikey NFC</div>
+                <div style={{ fontSize: "10px" }}>Added July 23rd</div>
+              </div>
+            </div>
+          ) : (
+            <button
+              className="btn btn-primary text-white rounded-md"
+              onClick={async () => {
+                try {
+                  let publicKey = await register();
+                  setPublicKey(publicKey);
+                  localStorage.setItem("publicKey", publicKey);
+                } catch (e) {
+                  console.error(e);
+                }
+              }}
+            >
+              Pair your security key
+            </button>
+          )}
+        </div>
+        {/* <div className="columns-2">
             <div>
               <div>Deposit Amount</div>
               <div className="text-xs" style={{ fontSize: "10px" }}>
@@ -213,15 +276,16 @@ const Setup = ({
             </div>
             <input className="input" placeholder="Enter an amount"></input>
           </div> */}
-      <button
-        className="btn btn-primary"
-        onClick={async () => {
-          await confirmAndDeploy();
-        }}
-        disabled={!(txLimit !== 0 && publicKey !== "") || isDeploying}
-      >
-        Confirm and Deploy
-      </button>
+        <button
+          className="btn btn-primary text-white rounded-md"
+          onClick={async () => {
+            await confirmAndDeploy();
+          }}
+          disabled={!(txLimit !== 0 && publicKey !== "") || isDeploying}
+        >
+          Confirm and Deploy
+        </button>
+      </div>
     </div>
   );
 };
@@ -268,6 +332,7 @@ const WalletPage = ({ contractAddress, address }) => {
   const [addressToSendTo, setAddressToSendTo] = useState("");
   const [amountToSend, setAmountToSend] = useState(0);
   const [needsVerification, setNeedsVerification] = useState(false);
+  const { data, sendTransaction } = useSendTransaction();
 
   useEffect(() => {
     if (txLimit && +amountToSend >= +txLimit.toString()) {
@@ -276,6 +341,14 @@ const WalletPage = ({ contractAddress, address }) => {
       setNeedsVerification(false);
     }
   }, [amountToSend, txLimit]);
+
+  const handleDeposit = async () => {
+    sendTransaction({
+      to: contractAddress,
+      value: parseEther("0.1"),
+      gas: 210000,
+    });
+  };
 
   const handleSend = async () => {
     if (needsVerification) {
@@ -303,122 +376,144 @@ const WalletPage = ({ contractAddress, address }) => {
           )
           .catch(console.error)
       );
-
-      // console.log(args);
-      // // hard transfer
-      // console.log(
-      //   // @ts-ignore
-      //   authenticatedTransfer({
-      //     args: args,
-      //   })
-      // );
-
-      // let tx = await txauthenticator.authenticatedTransfer(
-      //   "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
-      //   "2000",
-      //   authenticatorData,
-      //   0x01,
-      //   clientData,
-      //   clientChallenge,
-      //   challengeOffset,
-      //   sig,
-      //   { gasLimit: 4000000 }
-      // );
+      (window as any).my_modal_1.close();
     } else {
       // simpleTransfer
       console.log(
         // @ts-ignore
         simpleTransferWrite({ args: [addressToSendTo, amountToSend] } as any)
       );
+      (window as any).my_modal_1.close();
     }
   };
 
   return (
     <div>
-      <div className="flex space-x-1">
-        <div>{address && address.substring(0, 5) + "..."}</div>
-        <div>{myBalance ? myBalance.formatted + myBalance.symbol : ""}</div>
-        <div>
-          {contractBalance
-            ? contractBalance.formatted + contractBalance.symbol
-            : ""}
-        </div>
-        <div>
-          <button className="btn btn-primary btn-outline">Deposit</button>
-        </div>
-        <div>
-          <button
-            className="btn btn-primary"
-            onClick={() => (window as any).my_modal_1.showModal()}
-          >
-            Send
-          </button>
-        </div>
-      </div>
+      <div className="p-10">
+        {/* {address} */}
 
-      <div>2FA is enabled. </div>
-      <div className="flex">Wallet Settings</div>
-      <div className="columns-2">
-        <div>
-          <div>Contract Address</div>
-        </div>
-        <div>{contractAddress}</div>
-      </div>
-      <div className="columns-2">
-        <div>
-          <div>Daily Transaction Limit</div>
-        </div>
-        <div>{txLimit && txLimit.toString()}</div>
-      </div>
-      <div className="columns-2">
-        <div>
-          <div>Security Key</div>
-        </div>
-        <div>Yubikey NFC</div>
-        <div className="text-xs">Added on: July 22, 2023</div>
-      </div>
-
-      <dialog id="my_modal_1" className="modal">
-        <form method="dialog" className="modal-box">
-          Transfer funds
-          <div className="flex">Send to</div>
-          <input
-            className="input"
-            value={addressToSendTo}
-            onChange={(e) => setAddressToSendTo(e.target.value)}
-            placeholder="Enter an address or ENS"
-          ></input>
-          <div className="flex">Amount</div>
-          <div className="flex justify-center items-center">
-            <input
-              className="input"
-              type="number"
-              value={amountToSend}
-              onChange={(e) => setAmountToSend(+e.target.value)}
-              placeholder="Enter an amount"
-            ></input>{" "}
-            ETH
+        <div className="flex border rounded-md p-4 text-[#9A9A9A] my-2 space-x-2 items-center">
+          <img height={"49px"} width={"49px"} src={nounCircle} />
+          <div>
+            {address &&
+              address.substring(0, 5) +
+                "..." +
+                address.substring(address.length - 4, address.length - 1)}
           </div>
-          {needsVerification && (
+          <img height={"200px"} width={"100px"} src={nounShield} />
+          <div>
+            {contractBalance
+              ? contractBalance.formatted + contractBalance.symbol
+              : ""}
+          </div>
+          <img height={"40px"} width={"40px"} src={wallet} />
+          <div>{myBalance ? myBalance.formatted + myBalance.symbol : ""}</div>
+          <div>
+            <button
+              className="btn btn-primary btn-outline"
+              onClick={async () => {
+                await handleDeposit();
+              }}
+            >
+              Deposit
+            </button>
+          </div>
+          <div>
+            <button
+              className="btn btn-primary"
+              onClick={() => (window as any).my_modal_1.showModal()}
+            >
+              Send
+            </button>
+          </div>
+        </div>
+        <div className="flex border items-center rounded-md p-4 text-[#9A9A9A] my-2">
+          <img
+            className="mr-4"
+            height={"50px"}
+            width={"50px"}
+            src={greenShield}
+          />
+          2FA is enabled.
+        </div>
+        <div className="flex flex-col border rounded-md p-4  my-2">
+          <div className="bold flex mb-6">
+            <b>Wallet Settings</b>
+          </div>
+          <div className="columns-2">
             <div>
-              This amount is greater than your daily limit. Security
-              verification required.
+              <div className="text-[#6B7280]">Contract Address</div>
             </div>
-          )}
-          <div className="flex items-center">
-            <div className="modal-action">
-              {/* if there is a button in form, it will close the modal */}
-              <button className="btn">Cancel</button>
-              <div
-                className="btn btn-primary"
-                onClick={async () => await handleSend().catch(console.error)}
-              >
-                Send
+            <div>{contractAddress}</div>
+          </div>
+          <div className="columns-2">
+            <div>
+              <div className="text-[#6B7280]">Daily Transaction Limit</div>
+            </div>
+            <div>{txLimit && txLimit.toString()}</div>
+          </div>
+          <div className="columns-2">
+            <div>
+              <div className="text-[#6B7280]">Security Key</div>
+            </div>
+            <div className="flex items-center">
+              <img height={"40px"} width={"40px"} src={yubikey} />
+              <div className="flex flex-col">
+                <div>Yubikey NFC</div>
+                <div style={{ fontSize: "10px" }}>Added July 23rd</div>
               </div>
             </div>
           </div>
-        </form>
-      </dialog>
+
+          <dialog id="my_modal_1" className="modal">
+            <form method="dialog" className="modal-box p-10">
+              <div className="  items-center">
+                <div className="mb-8">
+                  <b>Transfer funds</b>
+                </div>
+                <div className="flex mb-4">Send to</div>
+                <input
+                  className="input input-bordered w-full"
+                  value={addressToSendTo}
+                  onChange={(e) => setAddressToSendTo(e.target.value)}
+                  placeholder="Enter an address or ENS"
+                ></input>
+                <div className="flex my-4">Amount</div>
+                <div className="flex items-center">
+                  <input
+                    className="input input-bordered w-full mr-2"
+                    type="number"
+                    value={amountToSend}
+                    onChange={(e) => setAmountToSend(+e.target.value)}
+                    placeholder="Enter an amount"
+                  ></input>
+                  {"  "}
+                  WEI
+                </div>
+                {needsVerification && (
+                  <div className="flex items-center py-4">
+                    <img height={"50px"} width={"50px"} src={yubikeyOrange} />
+                    <div className="text-[#B78719]">
+                      This amount is greater than your daily limit. 2FA
+                      verification required.
+                    </div>
+                  </div>
+                )}
+                <div className="flex items-center my-8">
+                  <div
+                    className="btn btn-primary text-white w-full"
+                    onClick={async () =>
+                      await handleSend().catch(console.error)
+                    }
+                  >
+                    Send
+                  </div>
+                </div>
+              </div>
+            </form>
+          </dialog>
+        </div>
+      </div>
     </div>
   );
 };
