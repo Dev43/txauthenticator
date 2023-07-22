@@ -72,11 +72,9 @@ async function register(): Promise<void> {
   console.log(x);
   let y = decodedKeyElems.get(-3);
   let keyxy = Buffer.from(x).toString("hex") + Buffer.from(y).toString("hex");
-  let keyyx = Buffer.from(y).toString("hex") + Buffer.from(x).toString("hex");
-  // const s = key.map((n) => n.toString(16).padStart(2, "0")).join("");
-  // console.log(s);
-  console.log("xy", keyxy);
-  console.log("yx", keyyx);
+
+  console.log("PUBLIC KEY", keyxy);
+
   // console.log(getXYCoordinates(parsed.cosePublicKeyBuffer));
   saveRegistration(res);
 }
@@ -100,13 +98,6 @@ async function authenticate(options?: {
     base64url.decode(authJSON.response.clientDataJSON)
   );
   console.log(clientDataJSON);
-  // let authObjectBuffer = base64url.toBuffer(
-  //   authJSON.response.authenticatorData
-  // );
-  // let authCtapMakeCredResp = cbor.decodeAllSync(authObjectBuffer)[0];
-  // console.log(authCtapMakeCredResp);
-  // console.log(authCtapMakeCredResp.authData);
-  // console.log(parseAuthData(authCtapMakeCredResp.authData));
 
   console.log(
     "signature",
