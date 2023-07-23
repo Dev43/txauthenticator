@@ -13,6 +13,8 @@ import "./App.css";
 import { type PublicKeyCredentialDescriptorJSON } from "@github/webauthn-json";
 import { getRegistrations, saveRegistration, setRegistrations } from "./state";
 import { useWeb3Modal } from "@web3modal/react";
+import { MetaMaskSDK } from "@metamask/sdk";
+
 import {
   useContractRead,
   useBalance,
@@ -36,11 +38,21 @@ import { parseEther } from "viem";
 const base64url = require("base64url");
 const cbor = require("cbor");
 
+// ethereum.request({ method: "eth_requestAccounts", params: [] });
 // useless PK address is 0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199
 const PK = "df57089febbacf7ba0bc227dafbffa9fc08a93fdc68e1e42411a14efcf23656e";
 // const PK = process.env.ROBOT_PRIVATE_KEY;
 const Pkey = `0x${PK}`;
 const _signer = new ethers.Wallet(Pkey);
+
+const MMSDK = new MetaMaskSDK({
+  dappMetadata: { name: "txauthenticator" },
+  injectProvider: true,
+  enableDebug: true,
+  forceInjectProvider: true,
+  shouldShimWeb3: true,
+  forceRestartWalletConnect: true,
+} as any);
 
 export function Pages() {
   const { open, close } = useWeb3Modal();
@@ -49,6 +61,8 @@ export function Pages() {
   const [isDeploying, setIsDeploying] = useState(false);
   const [publicKey, setPublicKey] = useState("");
   const [contractAddress, setContractAddress] = useState("");
+  const [mmAddress, setMMAddress] = useState("");
+  const [isMMSDK, setIsMMSDK] = useState(false);
   const { connector: activeConnector, isConnected, address } = useAccount();
 
   const initXMTP = useCallback(async () => {
@@ -78,7 +92,7 @@ export function Pages() {
     let info = {
       amount: txLimit,
       publicKey: publicKey,
-      owner: address,
+      owner: address || mmAddress,
     };
 
     await conversation.send("deploy " + JSON.stringify(info));
@@ -86,6 +100,18 @@ export function Pages() {
     setIsDeploying(false);
   };
   // clear();
+
+  const connectWithMetamask = async () => {
+    const accounts = await (window as any).ethereum.request({
+      method: "eth_requestAccounts",
+      params: [],
+    });
+    console.log(accounts);
+    // if MM we set the first address as signer
+    setMMAddress(accounts[0]);
+
+    setIsMMSDK(true);
+  };
 
   const xmtp = async () => {
     // You'll want to replace this with a wallet from your application
@@ -111,8 +137,10 @@ export function Pages() {
     }
   };
 
-  let toRender = <HomePage open={open} />;
-  if (isConnected && !contractAddress) {
+  let toRender = (
+    <HomePage open={open} connectWithMetamask={connectWithMetamask} />
+  );
+  if ((address || mmAddress) && !contractAddress) {
     toRender = (
       <Setup
         txLimit={txLimit}
@@ -121,12 +149,17 @@ export function Pages() {
         setPublicKey={setPublicKey}
         confirmAndDeploy={confirmAndDeploy}
         isDeploying={isDeploying}
-        address={address}
+        address={address || mmAddress}
+        isMMSDK={isMMSDK}
       />
     );
-  } else if (isConnected && contractAddress) {
+  } else if ((address || mmAddress) && contractAddress) {
     toRender = (
-      <WalletPage contractAddress={contractAddress} address={address} />
+      <WalletPage
+        contractAddress={contractAddress}
+        address={address}
+        isMMSDK={isMMSDK}
+      />
     );
   }
 
@@ -148,7 +181,7 @@ export function Pages() {
   );
 }
 
-const HomePage = ({ open }) => {
+const HomePage = ({ open, connectWithMetamask }) => {
   return (
     <header className="App-header">
       <img className="p-5" src={main} />
@@ -163,7 +196,13 @@ const HomePage = ({ open }) => {
         className="btn btn-primary text-[#FFFFFF] btn-md my-4"
         onClick={() => open()}
       >
-        Connect Wallet
+        Connect with WalletConnect
+      </button>
+      <button
+        className="btn btn-primary text-[#FFFFFF] btn-md my-4"
+        onClick={async () => await connectWithMetamask()}
+      >
+        Connect with Metamask SDK
       </button>
     </header>
   );
@@ -177,6 +216,7 @@ const Setup = ({
   confirmAndDeploy,
   isDeploying,
   address,
+  isMMSDK,
 }) => {
   const {
     data: myBalance,
@@ -199,8 +239,12 @@ const Setup = ({
         </div>
         {/* <img height={"100px"} width={"100px"} src={nounShield} />
         <div>0</div> */}
-        <img height={"40px"} width={"40px"} src={wallet} />
-        <div>{myBalance ? myBalance.formatted + myBalance.symbol : ""}</div>
+        {!isMMSDK && (
+          <div>
+            <img height={"40px"} width={"40px"} src={wallet} />
+            <div>{myBalance ? myBalance.formatted + myBalance.symbol : ""}</div>
+          </div>
+        )}
       </div>
       <div className="flex border rounded-md p-4 text-[#9A9A9A] my-2">
         <img className="mr-4" src={shield} />
@@ -291,7 +335,7 @@ const Setup = ({
   );
 };
 
-const WalletPage = ({ contractAddress, address }) => {
+const WalletPage = ({ contractAddress, address, isMMSDK }) => {
   const signer = useEthersSigner();
   const {
     data: txLimit,
@@ -344,21 +388,43 @@ const WalletPage = ({ contractAddress, address }) => {
   }, [amountToSend, txLimit]);
 
   const handleDeposit = async () => {
-    sendTransaction({
-      to: contractAddress,
-      value: parseEther("0.1"),
-      gas: 210000,
-    });
+    console.log(isMMSDK);
+    if (isMMSDK) {
+      const ethereum = MMSDK.getProvider();
+
+      const provider = new ethers.providers.Web3Provider(ethereum as any);
+      const signer = provider.getSigner();
+      await signer
+        .sendTransaction({
+          to: contractAddress,
+          value: parseEther("0.1"),
+          gasLimit: 210000,
+        })
+        .catch(console.error);
+    } else {
+      sendTransaction({
+        to: contractAddress,
+        value: parseEther("0.1"),
+        gas: 210000,
+      });
+    }
   };
 
   const handleSend = async () => {
     if (needsVerification) {
       let res = await authenticate().catch(console.error);
       // let provider = ethers.getDefaultProvider("http://localhost:8545");
+      let mainSigner = signer;
+      if (isMMSDK) {
+        const ethereum = MMSDK.getProvider();
+        const provider = new ethers.providers.Web3Provider(ethereum as any);
+
+        mainSigner = provider.getSigner();
+      }
       const myContract = new ethers.Contract(
         contractAddress,
         txauthenticator_abi,
-        signer
+        mainSigner
       );
 
       console.log(
@@ -380,10 +446,28 @@ const WalletPage = ({ contractAddress, address }) => {
       (window as any).my_modal_1.close();
     } else {
       // simpleTransfer
-      console.log(
-        // @ts-ignore
-        simpleTransferWrite({ args: [addressToSendTo, amountToSend] } as any)
-      );
+
+      if (isMMSDK) {
+        const ethereum = MMSDK.getProvider();
+        const provider = new ethers.providers.Web3Provider(ethereum as any);
+
+        let signer = provider.getSigner();
+        const myContract = new ethers.Contract(
+          contractAddress,
+          txauthenticator_abi,
+          signer
+        );
+        await myContract
+          .simpleTransfer(addressToSendTo, amountToSend, {
+            gasLimit: 600000,
+          })
+          .catch(console.error);
+      } else {
+        console.log(
+          // @ts-ignore
+          simpleTransferWrite({ args: [addressToSendTo, amountToSend] } as any)
+        );
+      }
       (window as any).my_modal_1.close();
     }
   };

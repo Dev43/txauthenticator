@@ -1,8 +1,5 @@
-import React, { useEffect, useState } from "react";
-import main from "./images/main.png";
 import "./App.css";
-import { type PublicKeyCredentialDescriptorJSON } from "@github/webauthn-json";
-import { getRegistrations, saveRegistration, setRegistrations } from "./state";
+
 import {
   EthereumClient,
   w3mConnectors,
