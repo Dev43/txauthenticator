@@ -157,7 +157,7 @@ export function Pages() {
     toRender = (
       <WalletPage
         contractAddress={contractAddress}
-        address={address}
+        address={address || mmAddress}
         isMMSDK={isMMSDK}
       />
     );
@@ -386,6 +386,42 @@ const WalletPage = ({ contractAddress, address, isMMSDK }) => {
       setNeedsVerification(false);
     }
   }, [amountToSend, txLimit]);
+
+  const initData = useCallback(async () => {
+    await getData();
+  }, []);
+
+  useEffect(() => {
+    initData();
+  }, [initData]);
+
+  const getData = async () => {
+    if (isMMSDK) {
+      // we get spend limit
+      // we get contract and user balance
+      const ethereum = MMSDK.getProvider();
+
+      const provider = new ethers.providers.Web3Provider(ethereum as any);
+      let contractBalance = await provider.getBalance(contractAddress);
+      let userBalance = await provider.getBalance(address);
+
+      const myContract = new ethers.Contract(
+        contractAddress,
+        txauthenticator_abi,
+        provider
+      );
+      let txLimit = await myContract.getSpendLimitPerDay();
+      console.log(
+        contractBalance
+          .div(ethers.BigNumber.from("1000000000000000000"))
+          .toString(),
+        userBalance
+          .div(ethers.BigNumber.from("1000000000000000000"))
+          .toString(),
+        txLimit.toNumber()
+      );
+    }
+  };
 
   const handleDeposit = async () => {
     console.log(isMMSDK);
