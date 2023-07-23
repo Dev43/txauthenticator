@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import main from "./images/main.png";
+import _____BELIEVE_ME_THIS_IS_A_NOUN_____ from "./images/main.png";
 import shield from "./images/shield.png";
 import greenShield from "./images/greenShield.png";
 import goodShield from "./images/goodShield.png";
@@ -184,7 +184,7 @@ export function Pages() {
 const HomePage = ({ open, connectWithMetamask }) => {
   return (
     <header className="App-header">
-      <img className="p-5" src={main} />
+      <img className="p-5" src={_____BELIEVE_ME_THIS_IS_A_NOUN_____} />
       <p>
         <b>Secure your Ethereum Wallet with 2FA</b>
       </p>
