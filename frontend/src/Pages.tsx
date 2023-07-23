@@ -199,7 +199,7 @@ const HomePage = ({ open, connectWithMetamask }) => {
         Connect with WalletConnect
       </button>
       <button
-        className="btn btn-primary text-[#FFFFFF] btn-md my-4"
+        className="btn bg-[#ea7a3d] text-[#FFFFFF] btn-md my-4"
         onClick={async () => await connectWithMetamask()}
       >
         Connect with Metamask SDK

@@ -1,6 +1,6 @@
 # TxAuthenticator
 
-![TxAuthenticator screenshot](screenshot.png "TxAuthenticator")
+![TxAuthenticator screenshot](txauthenticator.gif "TxAuthenticator")
 
 ## TLDR
 
