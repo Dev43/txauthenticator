@@ -19,6 +19,8 @@ For self-custodied web and mobile-based Ethereum wallets, 2FA remains notably ab
 
 Run `cd backend && yarn && cd ../txauth && yarn && cd ../frontend && yarn && yarn start`
 
+In another window, go into `txauth` and run `npx hardhat node` to create testnet
+
 In `backend` run `node index.js`. Backend is only there as the steps to deploy the contracts are too time consuming for a hackathon, this could be all done in the frontend if we had more time.
 
 ## Shoutout!
