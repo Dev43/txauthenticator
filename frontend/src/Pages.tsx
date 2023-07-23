@@ -240,7 +240,7 @@ const Setup = ({
         {/* <img height={"100px"} width={"100px"} src={nounShield} />
         <div>0</div> */}
         {!isMMSDK && (
-          <div>
+          <div className="flex items-center space-x-1">
             <img height={"40px"} width={"40px"} src={wallet} />
             <div>{myBalance ? myBalance.formatted + myBalance.symbol : ""}</div>
           </div>
